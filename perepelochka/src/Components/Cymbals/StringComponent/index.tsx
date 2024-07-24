@@ -3,7 +3,7 @@
 import React from "react";
 // import * as Tone from "tone";
 import styles from "./string.module.css";
-import * as Tone from "tone/Tone";
+import * as Tone from "tone";
 
 interface StringProps {
   soundName: string;
