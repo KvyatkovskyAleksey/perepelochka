@@ -1,0 +1,18 @@
+.string {
+  position: relative;
+  height: 3vh;
+  width: 100%;
+}
+
+.string::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #000; /* choose color of line */
+}
+
+.string:hover::before {
+  border-top: 1px solid #f0cf5c; /* new color for line */
+}
