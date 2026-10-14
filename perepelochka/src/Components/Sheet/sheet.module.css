@@ -2,6 +2,11 @@
   display: block;
   background: transparent;
   filter: drop-shadow(0 3px 6px rgba(74, 59, 42, 0.22));
+  /* натуральный размер в мм (1mm ≈ 3.78px при 96dpi),
+     но на экране не шире контейнера — без горизонтального скролла */
+  width: calc(var(--mmw) * 1mm);
+  max-width: 100%;
+  height: auto;
 }
 
 .paper {
@@ -140,5 +145,8 @@
 @media print {
   .sheet {
     filter: none;
+    /* при печати — точный физический размер без ограничений */
+    width: calc(var(--mmw) * 1mm);
+    max-width: none;
   }
 }

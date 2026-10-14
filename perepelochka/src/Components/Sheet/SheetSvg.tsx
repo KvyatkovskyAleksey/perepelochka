@@ -28,7 +28,6 @@ interface SheetSvgProps {
   onStringClick?: (midi: number) => void;
 }
 
-const MM_PER_PX = 96 / 25.4; // CSS-пикселей в миллиметре
 
 /** Цвета нот по тактам: каждый такт — свой цвет, легче не терять место. */
 const BAR_COLORS = [
@@ -162,7 +161,7 @@ const SheetSvg: React.FC<SheetSvgProps> = ({
       data-testid="sheet-svg"
       className={styles.sheet}
       viewBox={`${vbLeft} ${vbTop} ${vbWidth} ${vbHeight}`}
-      style={{ width: `${vbWidth * MM_PER_PX}px` }}
+      style={{ "--mmw": vbWidth } as React.CSSProperties}
       role="img"
       aria-label={`Карточка ${sheet.index + 1}: ${title}`}
     >

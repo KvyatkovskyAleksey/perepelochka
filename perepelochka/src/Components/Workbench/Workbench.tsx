@@ -24,28 +24,12 @@ import {
 import { inspectMidi, melodyFromMidi, type MidiFileInfo } from "@/lib/music/midi";
 import type { Melody } from "@/lib/music/types";
 import { layoutMelody, type SheetLayoutResult } from "@/lib/sheet/layout";
+import { DEMOS } from "@/lib/music/demos";
 import SheetSvg from "@/Components/Sheet/SheetSvg";
 import Quail from "@/Components/Quail/Quail";
 import { ToneContext } from "@/contexts/toneContext";
 import styles from "./workbench.module.css";
 
-const DEMOS: { title: string; emoji: string; abc: string }[] = [
-  {
-    title: "Звёздочка",
-    emoji: "⭐",
-    abc: "X:1\nT:Звёздочка\nM:4/4\nL:1/4\nK:C\n| c c g g | a a g2 | f f e e | d d c2 |\n| g g f f | e e d2 | g g f f | e e d2 |\n| c c g g | a a g2 | f f e e | d d c2 |]\n",
-  },
-  {
-    title: "Ода к радости",
-    emoji: "🎼",
-    abc: "X:1\nT:Ода к радости\nM:4/4\nL:1/8\nK:C\n| e2 e2 f2 g2 | g2 f2 e2 d2 | c2 c2 d2 e2 | e2 d2 d4 |\n| e2 e2 f2 g2 | g2 f2 e2 d2 | c2 c2 d2 e2 | d2 c2 c4 |]\n",
-  },
-  {
-    title: "Коробейники (Тетрис)",
-    emoji: "🎮",
-    abc: "X:1\nT:Коробейники\nM:4/4\nL:1/8\nK:Em\n| E2 B,2 C2 D2 | E2 C2 B,2 A,2 | B,2 C2 D2 E2 | C4 A,4 |\n| E2 B,2 C2 D2 | E2 C2 B,2 A,2 | G,2 B,2 E2 ^D2 | E8 |]\n",
-  },
-];
 
 const PROFILE_STORAGE_KEY = "perepelochka:custom-profile";
 const FIT_ONE_STORAGE_KEY = "perepelochka:fit-one-sheet";

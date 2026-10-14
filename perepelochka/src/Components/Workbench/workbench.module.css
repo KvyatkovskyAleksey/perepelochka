@@ -589,13 +589,14 @@
 
 .sheetsRow {
   display: flex;
+  flex-wrap: wrap;
   gap: 26px;
-  overflow-x: auto;
   padding: 10px 2px 14px;
 }
 
 .sheetWrap {
   flex: 0 0 auto;
+  max-width: 100%;
   border-radius: 10px;
 }
 
