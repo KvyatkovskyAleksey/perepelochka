@@ -1,0 +1,144 @@
+.sheet {
+  display: block;
+  background: transparent;
+  filter: drop-shadow(0 3px 6px rgba(74, 59, 42, 0.22));
+}
+
+.paper {
+  fill: #fffdf6;
+  stroke: none;
+}
+
+.cut {
+  fill: none;
+  stroke: #d94b38;
+  stroke-width: 0.4;
+  stroke-dasharray: 2 1.5;
+}
+
+.cutSoft {
+  fill: none;
+  stroke: #d94b38;
+  stroke-width: 0.35;
+  stroke-dasharray: 2 1.5;
+  opacity: 0.4;
+}
+
+.string {
+  stroke: #c8a15a;
+  stroke-width: 0.35;
+  cursor: pointer;
+}
+
+.string:hover {
+  stroke: #a8813d;
+  stroke-width: 0.6;
+}
+
+.stringHot {
+  stroke: #ff6b57;
+  stroke-width: 0.95;
+  cursor: pointer;
+  animation: stringVibe 0.22s linear infinite;
+}
+
+@keyframes stringVibe {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-0.75px);
+  }
+  75% {
+    transform: translateY(0.75px);
+  }
+}
+
+.grain {
+  fill: none;
+  stroke: rgba(122, 82, 44, 0.16);
+  stroke-width: 0.9;
+}
+
+.bridge {
+  stroke: rgba(122, 82, 44, 0.5);
+  stroke-width: 3.4;
+  stroke-linecap: round;
+}
+
+.engraving {
+  font-family: var(--font-display), cursive;
+  font-size: 7px;
+  fill: rgba(122, 82, 44, 0.55);
+  letter-spacing: 0.4px;
+}
+
+.tuneLabel {
+  font-size: 3px;
+  fill: #8a7a66;
+}
+
+.bar {
+  stroke: #e0d3b8;
+  stroke-width: 0.3;
+}
+
+.barLabel {
+  font-size: 3px;
+  font-weight: 600;
+  fill: #8a7a66;
+}
+
+.path {
+  fill: none;
+  stroke: #eadfc8;
+  stroke-width: 0.35;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.note {
+  stroke-width: 0.5;
+}
+
+.noteActive {
+  stroke-width: 1;
+  filter: drop-shadow(0 0 1.2px rgba(255, 107, 87, 0.9));
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+.title {
+  font-family: var(--font-display), cursive;
+  font-size: 4.2px;
+  fill: #4a3b2a;
+}
+
+.pageNo {
+  font-size: 3.5px;
+  fill: #8a7a66;
+}
+
+.ruler {
+  stroke: #4a3b2a;
+  stroke-width: 0.3;
+}
+
+@keyframes pulse {
+  from {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(1);
+  }
+  to {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(1.35);
+  }
+}
+
+@media print {
+  .sheet {
+    filter: none;
+  }
+}

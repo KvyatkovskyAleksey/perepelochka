@@ -1,0 +1,27 @@
+.quail {
+  display: block;
+  user-select: none;
+}
+
+.note {
+  animation: floatNote 3s ease-in-out infinite;
+  transform-origin: 24px 26px;
+}
+
+@keyframes floatNote {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-6deg);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translateY(-6px) rotate(8deg);
+    opacity: 1;
+  }
+}
+
+@media print {
+  .quail {
+    display: none;
+  }
+}
