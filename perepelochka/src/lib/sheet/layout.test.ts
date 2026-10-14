@@ -90,6 +90,73 @@ describe("layoutMelody", () => {
     }
   });
 
+  it("шаг пользователя управляет числом карточек: меньше шаг — меньше карточек", () => {
+    // длинная мелодия (64 доли), в одну карточку не влезает
+    const long: number[] = [];
+    for (let i = 0; i < 8; i++) long.push(...[67, 69, 71, 72, 74, 76, 77, 79, 79, 77, 76, 74, 72, 71, 69, 67]);
+    const conv = convertMelody(makeMelody(long, 0.5), PEREPELOCHKA);
+
+    const wide = layoutMelody(conv.melody, PEREPELOCHKA); // шаг по умолчанию 12 мм
+    const dense = layoutMelody(conv.melody, withGeometry(PEREPELOCHKA, { mmPerBeat: 6 }));
+    expect(wide.sheets.length).toBeGreaterThan(dense.sheets.length);
+
+    // ноты идут ровно с шагом пользователя
+    const denseNotes = dense.sheets[0].notes;
+    expect(denseNotes[1].x - denseNotes[0].x).toBeCloseTo(0.5 * dense.mmPerBeat, 6);
+    expect(dense.mmPerBeat).toBeLessThanOrEqual(6 + 1e-9);
+
+    // все ноты по-прежнему в пределах своих струн
+    for (const sheet of dense.sheets) {
+      for (const note of sheet.notes) {
+        const line = stringLine(PEREPELOCHKA, note.stringFromTop);
+        expect(note.x).toBeLessThanOrEqual(line.x1 - PEREPELOCHKA.geometry.rightPadMm + 1e-9);
+      }
+    }
+  });
+
+  it("вырожденные размеры не роняют раскладку (стёртый шаг/длины)", () => {
+    const conv = convertMelody(makeMelody(TWINKLE_MIDIS), PEREPELOCHKA);
+    for (const patch of [
+      { mmPerBeat: 0 },
+      { mmPerBeat: -5 },
+      { lengthMinMm: 0, lengthMaxMm: 0 },
+      { lengthMaxMm: 0 },
+      { lengthMinMm: 0 },
+      { heightMm: 0 },
+      { mmPerBeat: 0, lengthMinMm: 0, lengthMaxMm: 0, heightMm: 0 },
+    ]) {
+      const prof = withGeometry(PEREPELOCHKA, patch);
+      const res = layoutMelody(conv.melody, prof);
+      expect(res.sheets.length).toBeGreaterThanOrEqual(1);
+      for (const sheet of res.sheets) {
+        expect(sheet.notes.length).toBeGreaterThan(0);
+        for (const note of sheet.notes) {
+          expect(Number.isFinite(note.x)).toBe(true);
+          expect(Number.isFinite(note.y)).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("карточки заполняются жадно: все полные, кроме последней", () => {
+    // 48 четвертей с верхней нотой E6: при шаге 3 в карточку влезает 7 тактов (28 долей)
+    const long = Array.from({ length: 48 }, (_, i) => [88, 84, 79, 76][i % 4]);
+    const conv = convertMelody(makeMelody(long), PEREPELOCHKA);
+    const layout = layoutMelody(conv.melody, withGeometry(PEREPELOCHKA, { mmPerBeat: 3 }));
+    expect(layout.sheets.length).toBe(2);
+    // первая карточка заполнена до вместимости (28 долей), вторая — остаток
+    expect(layout.sheets[0].startBeat).toBe(0);
+    expect(layout.sheets[1].startBeat).toBe(28);
+    expect(layout.sheets[1].notes.length).toBe(48 - 28);
+    // ноты обеих карточек не вылезают за пределы своих струн
+    for (const sheet of layout.sheets) {
+      for (const note of sheet.notes) {
+        const line = stringLine(PEREPELOCHKA, note.stringFromTop);
+        expect(note.x).toBeLessThanOrEqual(line.x1 - PEREPELOCHKA.geometry.rightPadMm + 1e-9);
+      }
+    }
+  });
+
   it("отступ первой ноты берётся из геометрии профиля", () => {
     const conv = convertMelody(makeMelody(TWINKLE_MIDIS), PEREPELOCHKA);
     const shifted = withGeometry(PEREPELOCHKA, { leftPadMm: 25 });

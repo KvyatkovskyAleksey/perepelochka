@@ -160,15 +160,17 @@ export function deserializeProfile(json: string): InstrumentProfile | null {
     if (tuning.length < 2) return null;
     const g = raw.geometry as Partial<SheetGeometry>;
     const num = (v: unknown, def: number) => (typeof v === "number" && Number.isFinite(v) ? v : def);
+    // сохранённая модель могла быть испорчена (например, стёртым полем) — чистим снизу
+    const safe = (v: unknown, def: number, floor: number) => Math.max(floor, num(v, def));
     const geometry: SheetGeometry = {
-      lengthMinMm: num(g.lengthMinMm, BASE_GEOMETRY.lengthMinMm),
-      lengthMaxMm: num(g.lengthMaxMm, BASE_GEOMETRY.lengthMaxMm),
-      heightMm: num(g.heightMm, BASE_GEOMETRY.heightMm),
-      verticalMarginMm: num(g.verticalMarginMm, BASE_GEOMETRY.verticalMarginMm),
-      rightPadMm: num(g.rightPadMm, BASE_GEOMETRY.rightPadMm),
-      mmPerBeat: num(g.mmPerBeat, BASE_GEOMETRY.mmPerBeat),
-      leftPadMm: num(g.leftPadMm, BASE_GEOMETRY.leftPadMm),
-      paperMarginMm: num(g.paperMarginMm, BASE_GEOMETRY.paperMarginMm),
+      lengthMinMm: safe(g.lengthMinMm, BASE_GEOMETRY.lengthMinMm, 30),
+      lengthMaxMm: safe(g.lengthMaxMm, BASE_GEOMETRY.lengthMaxMm, 50),
+      heightMm: safe(g.heightMm, BASE_GEOMETRY.heightMm, 60),
+      verticalMarginMm: safe(g.verticalMarginMm, BASE_GEOMETRY.verticalMarginMm, 0),
+      rightPadMm: safe(g.rightPadMm, BASE_GEOMETRY.rightPadMm, 0),
+      mmPerBeat: safe(g.mmPerBeat, BASE_GEOMETRY.mmPerBeat, 1),
+      leftPadMm: safe(g.leftPadMm, BASE_GEOMETRY.leftPadMm, 0),
+      paperMarginMm: safe(g.paperMarginMm, BASE_GEOMETRY.paperMarginMm, 0),
     };
     return {
       id: CUSTOM_PROFILE_ID,

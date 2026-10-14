@@ -49,7 +49,7 @@ const DEMOS: { title: string; emoji: string; abc: string }[] = [
 
 const PROFILE_STORAGE_KEY = "perepelochka:custom-profile";
 
-const EMPTY_SHEET = { index: 0, startBeat: 0, beats: 0, notes: [], bars: [] };
+const EMPTY_SHEET = { index: 0, startBeat: 0, beats: 0, windowStartX: 0, notes: [], bars: [] };
 
 interface ScheduledNote {
   t: number;
@@ -69,24 +69,24 @@ const GEOMETRY_GROUPS: { title: string; fields: GeometryField[] }[] = [
   {
     title: "🎻 Струны",
     fields: [
-      { key: "lengthMinMm", label: "Верхняя (короткая)", min: 40, max: 220, step: 1, unit: "мм" },
-      { key: "lengthMaxMm", label: "Басовая (длинная)", min: 100, max: 330, step: 1, unit: "мм" },
-      { key: "heightMm", label: "Размах струн (высота)", min: 80, max: 280, step: 1, unit: "мм" },
-      { key: "verticalMarginMm", label: "Отступ струн от краёв", min: 2, max: 30, step: 1, unit: "мм" },
+      { key: "lengthMinMm", label: "Верхняя (короткая)", min: 30, max: 250, step: 1, unit: "мм" },
+      { key: "lengthMaxMm", label: "Басовая (длинная)", min: 50, max: 330, step: 1, unit: "мм" },
+      { key: "heightMm", label: "Размах струн (высота)", min: 40, max: 300, step: 1, unit: "мм" },
+      { key: "verticalMarginMm", label: "Отступ струн от краёв", min: 0, max: 40, step: 1, unit: "мм" },
     ],
   },
   {
     title: "📄 Бумага и отступы",
     fields: [
-      { key: "leftPadMm", label: "Отступ первой ноты", min: 2, max: 30, step: 1, unit: "мм" },
-      { key: "rightPadMm", label: "Отступ ноты от конца струны", min: 2, max: 25, step: 1, unit: "мм" },
-      { key: "paperMarginMm", label: "Поле бумаги (линия реза)", min: 0, max: 20, step: 1, unit: "мм" },
+      { key: "leftPadMm", label: "Отступ первой ноты", min: 0, max: 40, step: 1, unit: "мм" },
+      { key: "rightPadMm", label: "Отступ ноты от конца струны", min: 0, max: 40, step: 1, unit: "мм" },
+      { key: "paperMarginMm", label: "Поле бумаги (линия реза)", min: 0, max: 30, step: 1, unit: "мм" },
     ],
   },
   {
     title: "🎵 Ноты",
     fields: [
-      { key: "mmPerBeat", label: "Шаг времени (мм на четверть)", min: 4, max: 24, step: 0.5, unit: "мм" },
+      { key: "mmPerBeat", label: "Шаг нот (мм на четверть) — меньше шаг, меньше карточек", min: 2, max: 30, step: 0.5, unit: "мм" },
     ],
   },
 ];
@@ -291,8 +291,46 @@ const Workbench: React.FC = () => {
   );
 
   // --- модель и геометрия ---
+  const [drafts, setDrafts] = useState<Partial<Record<keyof SheetGeometry, string>>>({});
+
   const setGeometryField = (key: keyof SheetGeometry, value: number) => {
     setProfile(withGeometry(toCustomProfile(profile), { [key]: value }));
+  };
+
+  const clearDraft = (key: keyof SheetGeometry) =>
+    setDrafts((d) => {
+      const next = { ...d };
+      delete next[key];
+      return next;
+    });
+
+  const onGeometryChange = (f: GeometryField, raw: string) => {
+    if (raw.trim() === "") {
+      // стёртое поле не применяем: ждём ввода
+      setDrafts((d) => ({ ...d, [f.key]: raw }));
+      return;
+    }
+    const v = Number(raw);
+    if (Number.isFinite(v) && v >= f.min && v <= f.max) {
+      // в диапазоне — применяем сразу
+      setGeometryField(f.key, v);
+      clearDraft(f.key);
+    } else if (Number.isFinite(v)) {
+      // вне диапазона (например, первая цифра «1» числа «12»): держим черновик,
+      // к границам приведём при уходе из поля
+      setDrafts((d) => ({ ...d, [f.key]: raw }));
+    }
+  };
+
+  const onGeometryBlur = (f: GeometryField) => {
+    const draft = drafts[f.key];
+    if (draft !== undefined && draft.trim() !== "") {
+      const v = Number(draft);
+      if (Number.isFinite(v)) {
+        setGeometryField(f.key, Math.min(Math.max(v, f.min), f.max));
+      }
+    }
+    clearDraft(f.key);
   };
 
   const applyTuning = () => {
@@ -474,11 +512,9 @@ const Workbench: React.FC = () => {
                     min={f.min}
                     max={f.max}
                     step={f.step}
-                    value={profile.geometry[f.key]}
-                    onChange={(e) => {
-                      const v = Number(e.target.value);
-                      if (Number.isFinite(v)) setGeometryField(f.key, v);
-                    }}
+                    value={drafts[f.key] ?? profile.geometry[f.key]}
+                    onChange={(e) => onGeometryChange(f, e.target.value)}
+                    onBlur={() => onGeometryBlur(f)}
                   />
                 </label>
               ))}

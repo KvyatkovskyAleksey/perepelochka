@@ -65,7 +65,7 @@ describe("SheetSvg", () => {
     const layout: SheetLayoutResult = { sheets: [], mmPerBeat: 12, totalBeats: 0 };
     const { container } = render(
       <SheetSvg
-        sheet={{ index: 0, startBeat: 0, beats: 0, notes: [], bars: [] }}
+        sheet={{ index: 0, startBeat: 0, beats: 0, windowStartX: 0, notes: [], bars: [] }}
         layout={layout}
         profile={PEREPELOCHKA}
         title="Калибровка"
