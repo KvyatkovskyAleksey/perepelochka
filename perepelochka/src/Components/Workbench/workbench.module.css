@@ -342,6 +342,52 @@
   border-color: var(--sky);
 }
 
+.fitOneLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--lilac-dark);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+}
+
+.fitOneLabel input[type="checkbox"] {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 2px solid var(--line);
+  background: #fffdf8;
+  cursor: pointer;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.fitOneLabel input[type="checkbox"]:checked {
+  background: var(--lilac);
+  border-color: var(--lilac-dark);
+}
+
+.fitOneLabel input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.geometryField input:disabled {
+  opacity: 0.45;
+  background: #f5efe3;
+  cursor: not-allowed;
+}
+
 .footer {
   text-align: center;
   color: var(--ink-soft);

@@ -48,6 +48,7 @@ const DEMOS: { title: string; emoji: string; abc: string }[] = [
 ];
 
 const PROFILE_STORAGE_KEY = "perepelochka:custom-profile";
+const FIT_ONE_STORAGE_KEY = "perepelochka:fit-one-sheet";
 
 const EMPTY_SHEET = { index: 0, startBeat: 0, beats: 0, windowStartX: 0, notes: [], bars: [] };
 
@@ -105,6 +106,8 @@ const Workbench: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [abcText, setAbcText] = useState("");
   const [withCalibration, setWithCalibration] = useState(true);
+  // режим «всё на одну карточку» — шаг подбирается автоматически
+  const [fitOneSheet, setFitOneSheet] = useState(false);
   const [hotString, setHotString] = useState<number | null>(null);
   const hotStringTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -138,9 +141,9 @@ const Workbench: React.FC = () => {
   useEffect(() => () => stopPlayback(), [stopPlayback]);
 
   const runPipeline = useCallback(
-    (melody: Melody, prof: InstrumentProfile) => {
+    (melody: Melody, prof: InstrumentProfile, fit: boolean) => {
       const converted = convertMelody(melody, prof);
-      const sheets = layoutMelody(converted.melody, prof);
+      const sheets = layoutMelody(converted.melody, prof, { fitOneSheet: fit });
       stopPlayback();
       setResult(converted);
       setLayout(sheets);
@@ -157,10 +160,18 @@ const Workbench: React.FC = () => {
   }, [runPipeline]);
   useEffect(() => {
     const src = sourceRef.current;
-    if (src) runPipelineRef.current(src, profile);
+    if (src) runPipelineRef.current(src, profile, fitOneSheet);
     setTuningText(tuningToText(profile.tuning));
     setTuningError(null);
-  }, [profile]);
+  }, [profile, fitOneSheet]);
+
+  // режим раскладки сохраняется в браузере
+  useEffect(() => {
+    localStorage.setItem(FIT_ONE_STORAGE_KEY, fitOneSheet ? "1" : "0");
+  }, [fitOneSheet]);
+  useEffect(() => {
+    setFitOneSheet(localStorage.getItem(FIT_ONE_STORAGE_KEY) === "1");
+  }, []);
 
   // своя модель сохраняется в браузере
   useEffect(() => {
@@ -181,14 +192,14 @@ const Workbench: React.FC = () => {
       try {
         const melody = melodyFromAbc(text, { name });
         sourceRef.current = melody;
-        runPipeline(melody, profile);
+        runPipeline(melody, profile, fitOneSheet);
       } catch (e) {
         setResult(null);
         setLayout(null);
         setError(e instanceof Error ? e.message : "Не удалось разобрать ABC");
       }
     },
-    [runPipeline, profile],
+    [runPipeline, profile, fitOneSheet],
   );
 
   const importMidiTrack = useCallback(
@@ -196,14 +207,14 @@ const Workbench: React.FC = () => {
       try {
         const melody = melodyFromMidi(buffer, { trackIndex: index, fileName: name, name });
         sourceRef.current = melody;
-        runPipeline(melody, profile);
+        runPipeline(melody, profile, fitOneSheet);
       } catch (e) {
         setResult(null);
         setLayout(null);
         setError(e instanceof Error ? e.message : "Не удалось разобрать MIDI");
       }
     },
-    [runPipeline, profile],
+    [runPipeline, profile, fitOneSheet],
   );
 
   const onFile = useCallback(
@@ -512,13 +523,28 @@ const Workbench: React.FC = () => {
                     min={f.min}
                     max={f.max}
                     step={f.step}
-                    value={drafts[f.key] ?? profile.geometry[f.key]}
+                    disabled={fitOneSheet && f.key === "mmPerBeat"}
+                    value={
+                      fitOneSheet && f.key === "mmPerBeat" && layout
+                        ? layout.mmPerBeat.toFixed(1)
+                        : (drafts[f.key] ?? profile.geometry[f.key])
+                    }
                     onChange={(e) => onGeometryChange(f, e.target.value)}
                     onBlur={() => onGeometryBlur(f)}
                   />
                 </label>
               ))}
             </div>
+            {group.title.includes("Ноты") && (
+              <label className={styles.fitOneLabel}>
+                <input
+                  type="checkbox"
+                  checked={fitOneSheet}
+                  onChange={(e) => setFitOneSheet(e.target.checked)}
+                />
+                Всё на одну карточку — шаг подбирается сам
+              </label>
+            )}
           </div>
         ))}
         <div className={styles.tuningRow}>
@@ -550,7 +576,12 @@ const Workbench: React.FC = () => {
               {result.shift === 0
                 ? "Транспонирование не потребовалось."
                 : `Транспонирование: ${result.shift > 0 ? "+" : ""}${result.shift} полутонов.`}{" "}
-              Карточек: {layout.sheets.length}. Слушай и проверяй, затем печатай.
+              Карточек: {layout.sheets.length}.
+              {fitOneSheet ? ` Шаг подобран автоматически: ${layout.mmPerBeat.toFixed(1)} мм/четверть.` : ""}{" "}
+              {fitOneSheet && layout.mmPerBeat < 4.5
+                ? "⚠️ Плотно: точки почти соприкасаются — можно отключить режим и взять пару карточек."
+                : ""}{" "}
+              Слушай и проверяй, затем печатай.
             </p>
             {result.warnings.length > 0 && (
               <ul className={styles.warnings}>

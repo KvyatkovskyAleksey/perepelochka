@@ -1,7 +1,7 @@
 import { convertMelody } from "@/lib/music/convert";
 import { PEREPELOCHKA, stringIndexForMidi, stringLine, withGeometry } from "@/lib/music/instrument";
 import { newMelodyId, type Melody, type MelodyNote } from "@/lib/music/types";
-import { layoutMelody } from "./layout";
+import { FIT_ONE_MAX_MM_PER_BEAT, layoutMelody } from "./layout";
 
 const TWINKLE_MIDIS = [72, 72, 79, 79, 81, 81, 79, 77, 77, 76, 76, 74, 74, 72];
 
@@ -112,6 +112,41 @@ describe("layoutMelody", () => {
         expect(note.x).toBeLessThanOrEqual(line.x1 - PEREPELOCHKA.geometry.rightPadMm + 1e-9);
       }
     }
+  });
+
+  it("режим «всё на одну карточку» подбирает шаг и умещает всю мелодию", () => {
+    // 64 четверти с высокими нотами: обычно это несколько карточек
+    const long = Array.from({ length: 64 }, (_, i) => [88, 84, 79, 76][i % 4]);
+    const conv = convertMelody(makeMelody(long), PEREPELOCHKA);
+    const manual = layoutMelody(conv.melody, PEREPELOCHKA);
+    expect(manual.sheets.length).toBeGreaterThan(1);
+
+    const fitted = layoutMelody(conv.melody, PEREPELOCHKA, { fitOneSheet: true });
+    expect(fitted.sheets).toHaveLength(1);
+    expect(fitted.mmPerBeat).toBeLessThan(manual.mmPerBeat);
+    expect(fitted.mmPerBeat).toBeLessThanOrEqual(FIT_ONE_MAX_MM_PER_BEAT + 1e-9);
+    // и все ноты — в пределах своих струн
+    for (const note of fitted.sheets[0].notes) {
+      const line = stringLine(PEREPELOCHKA, note.stringFromTop);
+      expect(note.x).toBeLessThanOrEqual(line.x1 - PEREPELOCHKA.geometry.rightPadMm + 1e-9);
+      expect(note.x).toBeGreaterThanOrEqual(line.x0 + PEREPELOCHKA.geometry.leftPadMm - 1e-9);
+    }
+  });
+
+  it("в авторежиме ручной шаг не ограничивает подбор: мелодия растягивается на карточку", () => {
+    // 48 четвертей G5 + одна E6 в середине: влезающий шаг ~3.4 мм
+    const long = Array.from({ length: 48 }, (_, i) => (i === 10 ? 88 : 79));
+    const conv = convertMelody(makeMelody(long), PEREPELOCHKA);
+    const denseProfile = withGeometry(PEREPELOCHKA, { mmPerBeat: 2 });
+    const fitted = layoutMelody(conv.melody, denseProfile, { fitOneSheet: true });
+    expect(fitted.sheets).toHaveLength(1);
+    // авторежим подобрал шаг ШИРЕ ручного «2» — поле его не ограничивает
+    expect(fitted.mmPerBeat).toBeGreaterThan(2);
+    // последняя нота использует почти всё окно своей струны
+    const notes = fitted.sheets[0].notes;
+    const last = notes[notes.length - 1];
+    const line = stringLine(PEREPELOCHKA, last.stringFromTop);
+    expect(last.x).toBeGreaterThan((line.x0 + line.x1) / 2);
   });
 
   it("вырожденные размеры не роняют раскладку (стёртый шаг/длины)", () => {

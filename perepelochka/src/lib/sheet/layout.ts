@@ -54,9 +54,14 @@ export interface LayoutOptions {
   maxMmPerBeat?: number;
   /** Минимум мм на долю, ниже которого режем на несколько карточек. */
   minMmPerBeat?: number;
+  /** Подобрать шаг так, чтобы вся мелодия уместилась на одну карточку. */
+  fitOneSheet?: boolean;
 }
 
 const LEFT_PAD_FALLBACK_MM = 10; // если в геометрии профиля не задан отступ
+
+/** Потолок шага в режиме «всё на одну карточку» (ручной шаг не влияет). */
+export const FIT_ONE_MAX_MM_PER_BEAT = 30;
 
 /** Радиус точки-ноты в мм по длительности (в долях). */
 export function noteRadiusMm(durBeats: number): number {
@@ -178,8 +183,17 @@ export function layoutMelody(
   const sheets: Sheet[] = [];
   let mmPerBeat = maxMmPerBeat;
 
+  // 0) режим «всё на одну карточку»: наибольший влезающий шаг.
+  // Ручной шаг пользователя здесь НЕ участвует (поле заблокировано) —
+  // потолком служит фиксированный разумный максимум.
+  if (opts.fitOneSheet && totalBeats > 0) {
+    const step = maxFeasibleStep(0, notes.length, FIT_ONE_MAX_MM_PER_BEAT);
+    mmPerBeat = step;
+    sheets.push(placeSheet(0, totalBeats, 0, notes.length, step));
+  }
+
   // 1) короткая мелодия: одна карточка, шаг сжимаем насколько нужно (но не плотнее minMmPerBeat)
-  if (totalBeats > 0) {
+  if (!sheets.length && totalBeats > 0) {
     const autoStep = maxFeasibleStep(0, notes.length, maxMmPerBeat);
     const b = boundsOf(0, notes.length, 0, autoStep);
     if (autoStep >= minMmPerBeat && b.L <= b.R + 1e-9) {
