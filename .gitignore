@@ -167,3 +167,10 @@ yarn-error.log*
 next-env.d.ts
 
 package-lock.json
+### perepelochka experiments
+experiments/data/session-tunes.json
+experiments/data/fit-report.json
+experiments/node_modules/
+
+### ZCode session artifacts
+.zcode/

@@ -1,0 +1,88 @@
+{
+ "summary": {
+  "total": 4,
+  "analyzed": 4,
+  "A_fitImmediately": 1,
+  "B_upTo3Fixes": 2,
+  "C_doesNotFit": 1,
+  "parseFail": 0,
+  "percentA": "25.0",
+  "percentAB": "75.0",
+  "medianWidthSemitones": 9,
+  "medianNoteCount": 14,
+  "tunesWithChords": 0,
+  "byType": {
+   "sanity": {
+    "A": 1,
+    "B": 2,
+    "C": 1
+   }
+  }
+ },
+ "results": [
+  {
+   "id": 1,
+   "name": "Twinkle Twinkle (C major, c-a)",
+   "type": "sanity",
+   "key": "Cmaj",
+   "meter": "4/4",
+   "expect": "A (сдвиг +5, C->G)",
+   "abc": "X:1\nT:Twinkle\nM:4/4\nL:1/4\nK:C\n| c c g g | a a g2 | f f e e | d d c2 |\n",
+   "status": "A",
+   "badAccidentals": 0,
+   "outOfRange": 0,
+   "shift": 2,
+   "width": 9,
+   "noteCount": 14,
+   "chordEls": 0
+  },
+  {
+   "id": 2,
+   "name": "G major melody with one F natural",
+   "type": "sanity",
+   "key": "Gmaj",
+   "meter": "4/4",
+   "expect": "B (1 нота вне гаммы)",
+   "abc": "X:1\nM:4/4\nL:1/4\nK:G\n| G A B =F | G A B2 | c B A G | F2 G2 |\n",
+   "status": "B",
+   "badAccidentals": 1,
+   "outOfRange": 0,
+   "shift": 12,
+   "width": 7,
+   "noteCount": 13,
+   "chordEls": 0
+  },
+  {
+   "id": 3,
+   "name": "Wide range chromatic (2.5 octaves)",
+   "type": "sanity",
+   "key": "Gmaj",
+   "meter": "4/4",
+   "expect": "C (вне гаммы + диапазон шире 2 октав)",
+   "abc": "X:1\nM:4/4\nL:1/4\nK:G\n| G,2 ^A,2 c2 ^d2 | f2 ^g2 b2 ^d'2 | g'4 z4 |\n",
+   "status": "C",
+   "badAccidentals": 2,
+   "outOfRange": 2,
+   "shift": -1,
+   "width": 36,
+   "noteCount": 9,
+   "chordEls": 0
+  },
+  {
+   "id": 4,
+   "name": "Tetris / Korobeiniki theme (E minor)",
+   "type": "sanity",
+   "key": "Em",
+   "meter": "4/4",
+   "expect": "A или B (e-moll ~= G-мажор; ^D в конце даёт 1-2 bad)",
+   "abc": "X:1\nT:Korobeiniki\nM:4/4\nL:1/8\nK:Em\n| E2 B,2 C2 D2 | E2 C2 B,2 A,2 | B,2 C2 D2 E2 | C4 A,4 | E2 B,2 C2 D2 | E2 C2 B,2 A,2 | G,2 B,2 E2 ^D2 | E8 |\n",
+   "status": "B",
+   "badAccidentals": 1,
+   "outOfRange": 0,
+   "shift": 12,
+   "width": 9,
+   "noteCount": 27,
+   "chordEls": 0
+  }
+ ]
+}
