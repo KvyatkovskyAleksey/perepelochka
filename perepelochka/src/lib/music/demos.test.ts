@@ -40,5 +40,13 @@ describe("демо-мелодии", () => {
     // Лондонский мост: до-ре-до-си
     const bridge = melodyFromAbc(DEMOS.find((d) => d.title.includes("мост"))!.abc);
     expect(bridge.notes.slice(0, 4).map((n) => n.midi - bridge.notes[0].midi)).toEqual([0, 2, 0, -1]);
+    // Коробейники (по партитуре Википедии): ми — соль-диез — си, пунктирный ритм
+    const korob = melodyFromAbc(DEMOS.find((d) => d.title.includes("Коробейники"))!.abc);
+    expect(korob.notes.slice(0, 3).map((n) => n.midi)).toEqual([64, 68, 71]);
+    expect(korob.notes[0].durBeats).toBeCloseTo(1.5, 6); // четверть с точкой
+    // Во поле берёза (по Викитеке): четыре восьмые ми, потом ре
+    const bereza = melodyFromAbc(DEMOS.find((d) => d.title.includes("берёза"))!.abc);
+    expect(bereza.notes.slice(0, 5).map((n) => n.midi)).toEqual([76, 76, 76, 76, 74]);
+    expect(bereza.notes[4].durBeats).toBeCloseTo(1, 6);
   });
 });

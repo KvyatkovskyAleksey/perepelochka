@@ -21,7 +21,9 @@ export const DEMOS: DemoMelody[] = [
   {
     title: "Коробейники (Тетрис)",
     emoji: "🎮",
-    abc: "X:1\nT:Коробейники\nM:4/4\nL:1/8\nK:Em\n| E2 B,2 C2 D2 | E2 C2 B,2 A,2 | B,2 C2 D2 E2 | C4 A,4 |\n| E2 B,2 C2 D2 | E2 C2 B,2 A,2 | G,2 B,2 E2 ^D2 | E8 |]\n",
+    // выверено по партитуре статьи en.wikipedia.org/wiki/Korobeiniki
+    // (разбор её MIDI: пунктирный ритм, соль-диез, ля минор)
+    abc: "X:1\nT:Коробейники\nM:4/4\nL:1/8\nK:Am\n| E3 ^G B2 ^G E | A3 c e2 d c | B3 c d2 e2 | c2 A2 A4 |\n| f3 g a2 g f | e3 f e2 d c | B3 c d2 e2 | c2 A2 A4 |]\n",
   },
   {
     title: "Ёлочка (Jingle Bells)",
@@ -41,6 +43,7 @@ export const DEMOS: DemoMelody[] = [
   {
     title: "Во поле берёза",
     emoji: "🌳",
-    abc: "X:1\nT:Во поле берёза\nM:4/4\nL:1/8\nK:Am\n| E2 E2 D2 C2 | D2 E2 E4 | E2 E2 D2 C2 | D2 E2 D4 |\n| E2 E2 D2 C2 | D2 E2 E4 | E2 D2 C2 D2 | C4 A,4 |]\n",
+    // русская народная; ABC по разбору Викитеки «Справка:Ноты» (6/4, ля минор)
+    abc: "X:1\nT:Во поле берёза\nM:6/4\nL:1/8\nK:Am\neeee d2 cc B2 A2 | eege ddcc B2 A2 | B3c d2 cc B2A2 | BBBc ddcc B2A2:|]\n",
   },
 ];
