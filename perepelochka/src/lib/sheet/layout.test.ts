@@ -139,36 +139,63 @@ describe("layoutMelody", () => {
   });
 
   it("карточки заполняются жадно: все полные, кроме последней", () => {
-    // 48 четвертей с верхней нотой E6: при шаге 3 в карточку влезает 7 тактов (28 долей)
+    // 48 четвертей с верхней нотой E6: по-нотные границы позволяют первой
+    // карточке взять больше тактов, чем ограничение по самой узкой струне
     const long = Array.from({ length: 48 }, (_, i) => [88, 84, 79, 76][i % 4]);
     const conv = convertMelody(makeMelody(long), PEREPELOCHKA);
     const layout = layoutMelody(conv.melody, withGeometry(PEREPELOCHKA, { mmPerBeat: 3 }));
     expect(layout.sheets.length).toBe(2);
-    // первая карточка заполнена до вместимости (28 долей), вторая — остаток
     expect(layout.sheets[0].startBeat).toBe(0);
-    expect(layout.sheets[1].startBeat).toBe(28);
-    expect(layout.sheets[1].notes.length).toBe(48 - 28);
-    // ноты обеих карточек не вылезают за пределы своих струн
+    expect(layout.sheets[0].notes.length).toBe(32); // 8 тактов: больше, чем 7 по узкой струне
+    expect(layout.sheets[1].startBeat).toBe(32);
+    expect(layout.sheets[1].notes.length).toBe(16);
+    // ноты обеих карточек лежат в пределах СВОИХ струн
     for (const sheet of layout.sheets) {
       for (const note of sheet.notes) {
         const line = stringLine(PEREPELOCHKA, note.stringFromTop);
         expect(note.x).toBeLessThanOrEqual(line.x1 - PEREPELOCHKA.geometry.rightPadMm + 1e-9);
+        expect(note.x).toBeGreaterThanOrEqual(line.x0 + PEREPELOCHKA.geometry.leftPadMm - 1e-9);
       }
     }
   });
 
-  it("отступ первой ноты берётся из геометрии профиля", () => {
+  it("высокая нота в середине не сжимает окно всей карточки", () => {
+    // 48 четвертей: G5 и одна высокая E6 в середине (t=10); мелодия уже в G-мажоре
+    const mids = Array.from({ length: 48 }, (_, i) => (i === 10 ? 88 : 79));
+    const conv = convertMelody(makeMelody(mids), PEREPELOCHKA);
+    expect(conv.shift % 12).toBe(0); // транспонирования не требуется
+    const layout = layoutMelody(conv.melody, withGeometry(PEREPELOCHKA, { mmPerBeat: 3 }));
+    // вся мелодия — в одну карточку: по-нотные границы мягче ограничения по узкой струне
+    expect(layout.sheets).toHaveLength(1);
+    const notes = layout.sheets[0].notes;
+    const high = notes.find((no) => no.midi === 88)!;
+    const highLine = stringLine(PEREPELOCHKA, high.stringFromTop);
+    expect(high.x).toBeLessThanOrEqual(highLine.x1 - PEREPELOCHKA.geometry.rightPadMm + 1e-9);
+    // низкие ноты после высокой уходят правее конца ВЕРХНЕЙ струны — и это корректно
+    const last = notes[notes.length - 1];
+    expect(last.x).toBeGreaterThan(highLine.x1);
+    const lastLine = stringLine(PEREPELOCHKA, last.stringFromTop);
+    expect(last.x).toBeLessThanOrEqual(lastLine.x1 - PEREPELOCHKA.geometry.rightPadMm + 1e-9);
+  });
+
+  it("каждая нота уважает левый отступ своей струны", () => {
     const conv = convertMelody(makeMelody(TWINKLE_MIDIS), PEREPELOCHKA);
     const shifted = withGeometry(PEREPELOCHKA, { leftPadMm: 25 });
     const layout = layoutMelody(conv.melody, shifted);
     const placed = layout.sheets[0].notes;
-    // окно времени начинается у левого края самой узкой используемой струны
-    const widths = placed.map((no) => {
-      const l = stringLine(shifted, no.stringFromTop);
-      return l.x1 - l.x0;
-    });
-    const shortestWidth = Math.min(...widths);
-    expect(placed[0].x).toBeCloseTo(-shortestWidth / 2 + 25, 6);
+    // окно начинается не левее границы самой стеснённой ноты карточки
+    for (const note of placed) {
+      const line = stringLine(shifted, note.stringFromTop);
+      expect(note.x).toBeGreaterThanOrEqual(line.x0 + 25 - 1e-6);
+    }
+    // окно прижато влево ровно к самой стеснённой ноте
+    const tightest = Math.max(
+      ...placed.map((note) => {
+        const line = stringLine(shifted, note.stringFromTop);
+        return line.x0 + 25 - note.startBeats * layout.mmPerBeat;
+      }),
+    );
+    expect(layout.sheets[0].windowStartX).toBeCloseTo(tightest, 6);
     const firstNoteBeat = placed[0].startBeats;
     expect(layout.sheets[0].bars[0].x - placed[0].x).toBeCloseTo((4 - firstNoteBeat) * layout.mmPerBeat, 6);
   });

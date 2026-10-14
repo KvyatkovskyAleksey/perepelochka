@@ -99,17 +99,50 @@ export function layoutMelody(
     const line = stringLine(profile, n - 1 - idx);
     return line.x1 - line.x0;
   };
-  // ширина самой узкой струны среди нот [from, to)
-  const shortestWidthOf = (from: number, to: number): number => {
-    let w = Infinity;
-    for (let i = from; i < to && i < notes.length; i++) w = Math.min(w, noteWidth(notes[i].midi));
-    return isFinite(w) ? w : profile.geometry.lengthMinMm;
+
+  // По-нотные границы окна (общая ось времени внутри карточки):
+  //   x_i = windowStart + t_i * step должна лежать на СВОЕЙ струне ноты i:
+  //   -W_i/2 + leftPad <= x_i <= W_i/2 - rightPad
+  // Высокая нота в середине ограничивает только свою позицию справа,
+  // а не ширину всей карточки.
+  const boundsOf = (from: number, to: number, start: number, step: number) => {
+    let L = -Infinity;
+    let R = Infinity;
+    for (let i = from; i < to && i < notes.length; i++) {
+      const w = noteWidth(notes[i].midi);
+      const t = notes[i].startBeats - start;
+      L = Math.max(L, -w / 2 + leftPad - t * step);
+      R = Math.min(R, w / 2 - rightPad - t * step);
+    }
+    if (!isFinite(L)) {
+      const w = profile.geometry.lengthMinMm;
+      L = -w / 2 + leftPad;
+      R = w / 2 - rightPad;
+    }
+    return { L, R };
   };
 
-  // карточка [start, end) с окном по её собственным струнам
+  // Наибольший шаг, при котором набор нот помещается на одну карточку.
+  // Условие "для всех пар нот": (t_j - t_i) * step <= (W_i + W_j)/2 - отступы.
+  const maxFeasibleStep = (from: number, to: number, cap: number): number => {
+    let s = cap;
+    for (let i = from; i < to && i < notes.length; i++) {
+      const wi = noteWidth(notes[i].midi);
+      const ti = notes[i].startBeats;
+      for (let j = i + 1; j < to && j < notes.length; j++) {
+        const dt = notes[j].startBeats - ti;
+        if (dt < 1e-6) continue; // одновременные ноты ловятся проверкой L <= R
+        const wj = noteWidth(notes[j].midi);
+        const limit = (wi / 2 - leftPad + wj / 2 - rightPad) / dt;
+        if (limit < s) s = limit;
+      }
+    }
+    return Math.max(0.5, s);
+  };
+
+  // карточка [start, end): окно начинаем так левее, как позволяют ноты
   const placeSheet = (start: number, end: number, fromIdx: number, toIdx: number, step: number): Sheet => {
-    const w = shortestWidthOf(fromIdx, toIdx);
-    const windowStart = -w / 2 + leftPad;
+    const windowStart = boundsOf(fromIdx, toIdx, start, step).L;
     const sheet: Sheet = {
       index: 0,
       startBeat: start,
@@ -145,16 +178,19 @@ export function layoutMelody(
   const sheets: Sheet[] = [];
   let mmPerBeat = maxMmPerBeat;
 
-  // 1) короткая мелодия: одна карточка (шаг при необходимости сжимаем, но не плотнее minMmPerBeat)
-  const wholeW = shortestWidthOf(0, notes.length);
-  const autoStep = (wholeW - leftPad - rightPad) / totalBeats;
-  if (totalBeats > 0 && Math.min(maxMmPerBeat, autoStep) >= minMmPerBeat) {
-    mmPerBeat = Math.min(maxMmPerBeat, autoStep);
-    sheets.push(placeSheet(0, totalBeats, 0, notes.length, mmPerBeat));
-  } else {
-    // 2) жадный поток по тактам: каждая карточка набирает такты до предела,
-    //    а её окно ограничено только ЕЁ собственными струнами. Карточка без
-    //    самых высоких нот начинается левее — «если слева есть место, строим левее».
+  // 1) короткая мелодия: одна карточка, шаг сжимаем насколько нужно (но не плотнее minMmPerBeat)
+  if (totalBeats > 0) {
+    const autoStep = maxFeasibleStep(0, notes.length, maxMmPerBeat);
+    const b = boundsOf(0, notes.length, 0, autoStep);
+    if (autoStep >= minMmPerBeat && b.L <= b.R + 1e-9) {
+      mmPerBeat = autoStep;
+      sheets.push(placeSheet(0, totalBeats, 0, notes.length, autoStep));
+    }
+  }
+
+  // 2) жадный поток по тактам: карточка набирает такты, пока по-нотные границы
+  //    сходятся (L <= R); окно каждой карточки начинается максимально левее
+  if (!sheets.length) {
     const CAP = 24;
     let start = 0;
     let idx = 0;
@@ -162,23 +198,28 @@ export function layoutMelody(
     while (start < totalBeats - 1e-9 && guard++ < 200) {
       let bestEnd = start;
       let bestIdx = idx;
+      let L = -Infinity;
+      let R = Infinity;
       let endIdx = idx;
-      let w = Infinity;
       for (
         let barEnd = Math.ceil((start + 1e-9) / barLen) * barLen;
         barEnd <= totalBeats + 1e-9;
         barEnd += barLen
       ) {
         let nextIdx = endIdx;
-        let nextW = w;
-        while (nextIdx < notes.length && notes[nextIdx].startBeats < barEnd - 1e-9) {
-          nextW = Math.min(nextW, noteWidth(notes[nextIdx].midi));
-          nextIdx++;
+        while (nextIdx < notes.length && notes[nextIdx].startBeats < barEnd - 1e-9) nextIdx++;
+        let newL = L;
+        let newR = R;
+        for (let i = endIdx; i < nextIdx; i++) {
+          const w = noteWidth(notes[i].midi);
+          const t = notes[i].startBeats - start;
+          newL = Math.max(newL, -w / 2 + leftPad - t * maxMmPerBeat);
+          newR = Math.min(newR, w / 2 - rightPad - t * maxMmPerBeat);
         }
-        const span = barEnd - start;
-        if (leftPad + span * maxMmPerBeat + rightPad <= nextW + 1e-9) {
+        if (newL <= newR + 1e-9) {
+          L = newL;
+          R = newR;
           endIdx = nextIdx;
-          w = nextW;
           bestEnd = barEnd;
           bestIdx = nextIdx;
         } else {
@@ -187,28 +228,21 @@ export function layoutMelody(
       }
       let step = maxMmPerBeat;
       if (bestEnd <= start + 1e-9) {
-        // даже один такт не влезает при заданном шаге — берём такт и уплотняем
+        // даже один такт не влезает — уплотняем шаг по нотам такта
         const barEnd = Math.min(Math.ceil((start + 1e-9) / barLen) * barLen, totalBeats);
         let nextIdx = idx;
-        let nextW = Infinity;
-        while (nextIdx < notes.length && notes[nextIdx].startBeats < barEnd - 1e-9) {
-          nextW = Math.min(nextW, noteWidth(notes[nextIdx].midi));
-          nextIdx++;
-        }
-        if (!isFinite(nextW)) nextW = profile.geometry.lengthMinMm;
+        while (nextIdx < notes.length && notes[nextIdx].startBeats < barEnd - 1e-9) nextIdx++;
+        step = maxFeasibleStep(idx, nextIdx, maxMmPerBeat);
         bestEnd = Math.max(barEnd, start + 0.25);
         bestIdx = nextIdx;
-        step = Math.max(0.5, (nextW - leftPad - rightPad) / (bestEnd - start));
       } else if (sheets.length === CAP - 1) {
-        // карточка под потолком счёта: в неё весь остаток, при необходимости плотнее
-        const restW = shortestWidthOf(bestIdx, notes.length);
-        const minW = Math.min(shortestWidthOf(idx, bestIdx), restW);
-        const rest = totalBeats - start;
-        if (leftPad + rest * maxMmPerBeat + rightPad > minW + 1e-9) {
-          step = Math.max(0.5, (minW - leftPad - rightPad) / rest);
-        }
+        // карточка под потолком счёта: весь остаток, при необходимости плотнее
         bestEnd = totalBeats;
         bestIdx = notes.length;
+        const b = boundsOf(idx, bestIdx, start, maxMmPerBeat);
+        if (b.L > b.R + 1e-9) {
+          step = maxFeasibleStep(idx, bestIdx, maxMmPerBeat);
+        }
       }
       sheets.push(placeSheet(start, bestEnd, idx, bestIdx, step));
       start = bestEnd;

@@ -257,10 +257,12 @@ const SheetSvg: React.FC<SheetSvgProps> = ({
 
       {!calibration && (
         <>
-          {/* тактовые линии: между крайними используемыми струнами */}
+          {/* тактовые линии: между струнами, которые ещё существуют в этой точке x */}
           {sheet.bars.map((bar, bi) => {
-            const topY = lines[topUsed].y0;
-            const botY = lines[bottomUsed].y0;
+            const ys = lines.filter((l) => Math.abs(bar.x) <= l.x1 + 1e-9).map((l) => l.y0);
+            if (ys.length < 1) return null;
+            const topY = Math.min(...ys);
+            const botY = Math.max(...ys);
             return (
               <g key={`b${bi}`}>
                 <line x1={bar.x} y1={topY} x2={bar.x} y2={botY} className={styles.bar} />
